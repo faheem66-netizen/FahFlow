@@ -16,7 +16,9 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 
+// Health Check & Root Routes
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/', (req, res) => res.send('FahFlow Backend Running Successfully!'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/gmail', gmailRoutes);
