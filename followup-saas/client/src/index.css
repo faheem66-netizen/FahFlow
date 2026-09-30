@@ -1,0 +1,6 @@
+/* Tailwind (loaded via CDN in index.html) handles all component styling now.
+   This file only carries the few resets Tailwind's CDN build doesn't cover. */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+html { scroll-behavior: smooth; }
+a { color: inherit; text-decoration: none; }
