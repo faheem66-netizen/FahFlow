@@ -37,9 +37,7 @@ const PORT = process.env.PORT || 5000;
 (async () => {
   await connectDB();
   monitoringService.start();
-  if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
-  }
+  app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
 })();
 
-module.exports = app;
+module.exports = app;s
