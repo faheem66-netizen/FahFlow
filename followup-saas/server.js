@@ -37,7 +37,9 @@ const PORT = process.env.PORT || 5000;
 (async () => {
   await connectDB();
   monitoringService.start();
-  app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => console.log(`[server] listening on port ${PORT}`));
+  }
 })();
 
-module.exports = app;s
+module.exports = app;
