@@ -13,7 +13,14 @@ const threadRoutes = require('./routes/threads.routes');
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+
+// Robust CORS configuration to handle trailing slashes safely
+const allowedClientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : '';
+app.use(cors({
+  origin: [allowedClientUrl, 'http://localhost:5173'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Health Check & Root Routes
