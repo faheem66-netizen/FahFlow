@@ -45,16 +45,4 @@ const PORT = process.env.PORT || 5000;
   await connectDB();
   monitoringService.start();
   app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
-})();
-
-const path = require('path');
-
-// Frontend static files serve karne ke liye
-app.use(express.static(path.join(__dirname, 'client/dist')));
-
-// Catch-all route for SPA routing (404 error fix karne ke liye)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
 });
-
-module.exports = app;
