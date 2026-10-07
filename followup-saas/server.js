@@ -42,7 +42,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 (async () => {
-  await connectDB();
-  monitoringService.start();
-  app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
-});
+  try {
+    await connectDB();
+    monitoringService.start();
+    app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+})();
