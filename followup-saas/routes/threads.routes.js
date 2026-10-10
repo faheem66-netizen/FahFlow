@@ -4,15 +4,15 @@ const { requireAuth } = require('../middleware/auth');
 const Thread = require('../models/Thread');
 const FollowUp = require('../models/FollowUp');
 
-// Helper: Auto-convert any Gmail URL, Hash, Encoded string, or Numeric ID to 16-char Hex ID
+// Helper: Auto-convert any Gmail URL, Hash, Encoded string, or Numeric ID while keeping case sensitivity intact
 const normalizeThreadId = (input) => {
   if (!input) return '';
   let str = String(input).trim();
 
   // 1. Full Gmail URL carrying "th=" parameter
   if (str.includes('th=')) {
-    const match = str.match(/th=([a-fA-F0-9]+)/);
-    if (match) return match[1].toLowerCase();
+    const match = str.match(/th=([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
   }
 
   // 2. Hash / Inbox URL format (e.g. https://mail.google.com/mail/u/0/#inbox/FMfcgz...)
@@ -25,16 +25,17 @@ const normalizeThreadId = (input) => {
   if (str.includes('%3A')) str = str.split('%3A')[1];
   if (str.includes('msg-f:')) str = str.split('msg-f:')[1];
 
-  // 4. Decimal/Numeric format (e.g. 1877606369615479042 -> 1a0e990b0f10102)
+  // 4. Decimal/Numeric format handling (if raw numeric ID is provided)
   if (/^\d+$/.test(str)) {
     try {
-      return BigInt(str).toString(16).toLowerCase();
+      return BigInt(str).toString(16);
     } catch (e) {
       console.error("Failed to convert numeric ID to hex on backend:", e);
     }
   }
 
-  return str.toLowerCase();
+  // Return the cleaned string without forcing lowercase
+  return str.trim();
 };
 
 // Every query below filters by `user: req.user._id` — this is the tenant boundary.
@@ -65,7 +66,7 @@ router.post(
 
     let { gmailThreadId, recipientEmail, subject, delaysDays, messageTemplate } = req.body;
 
-    // Normalize input to standard 16-char Hex format
+    // Normalize input to preserve exact case-sensitive format
     gmailThreadId = normalizeThreadId(gmailThreadId);
 
     const delays = delaysDays?.length ? delaysDays : req.user.followUpDefaults.delaysDays;
