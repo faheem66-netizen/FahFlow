@@ -31,6 +31,14 @@ async function runFollowUpCheck() {
 }
 
 async function processThread(user, thread) {
+  // 1. Sanitize and validate gmailThreadId
+  const cleanThreadId = thread.gmailThreadId ? String(thread.gmailThreadId).trim().replace(/,/g, '') : null;
+
+  if (!cleanThreadId) {
+    console.error(`[monitoring] Skipping thread ${thread._id}: Invalid or missing gmailThreadId.`);
+    return;
+  }
+
   const delays = thread.delaysDays?.length ? thread.delaysDays : user.followUpDefaults.delaysDays;
 
   // Safe step check (handles undefined currentStep)
@@ -38,12 +46,12 @@ async function processThread(user, thread) {
   const nextStep = currentStep + 1;
   const isFinalStep = nextStep > delays.length;
 
-  console.log(`[monitoring] Processing thread ${thread.gmailThreadId} | Current Step: ${currentStep} -> Next Step: ${nextStep}`);
+  console.log(`[monitoring] Processing thread ${cleanThreadId} | Current Step: ${currentStep} -> Next Step: ${nextStep}`);
 
-  // Fresh Gmail reply check
+  // Fresh Gmail reply check with cleanThreadId
   const replyCheck = await gmailService.isGenuineClientReply(
     user._id,
-    thread.gmailThreadId,
+    cleanThreadId,
     user.gmail.emailAddress,
     thread.lastMessageSentAt
   );
@@ -71,7 +79,7 @@ async function processThread(user, thread) {
     console.log(`[monitoring] Sending follow-up #${nextStep} to ${thread.recipientEmail}...`);
 
     sendResult = await gmailService.sendFollowUp(user._id, {
-      threadId: thread.gmailThreadId,
+      threadId: cleanThreadId,
       to: thread.recipientEmail,
       subject: thread.subject || '(no subject)',
       bodyText: buildFollowUpBody(nextStep, thread.messageTemplate || user.followUpDefaults.messageTemplate),
@@ -98,7 +106,7 @@ async function processThread(user, thread) {
   const delayDays = delays[nextStep - 1];
   thread.currentStep = nextStep;
   thread.lastMessageSentAt = new Date();
-  thread.nextFollowUpAt = new Date(Date.now() + delayDays * 24 * 60  * 60 * 1000);
+  thread.nextFollowUpAt = new Date(Date.now() + delayDays * 24 * 60 * 60 * 1000);
   await thread.save();
 
   console.log(`[monitoring] Next follow-up scheduled in ${delayDays} days.`);
