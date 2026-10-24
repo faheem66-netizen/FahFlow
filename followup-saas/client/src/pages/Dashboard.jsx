@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true); // <-- Loading state add kiya
+  const [loading, setLoading] = useState(true);
 
   // Settings (Templates & Delay) form state
   const [delaysText, setDelaysText] = useState('');
@@ -27,7 +27,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Failed to load user:', err);
     } finally {
-      setLoading(false); // <-- Loading khatam
+      setLoading(false);
     }
   }
 
@@ -75,6 +75,7 @@ export default function Dashboard() {
 
   async function logout() {
     await signOutUser();
+    localStorage.clear();
     window.location.href = '/login';
   }
 
@@ -105,7 +106,7 @@ export default function Dashboard() {
     }
   }
 
-  // Agar load ho raha hai toh black screen ki bajaye loading dikhayein
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm">
@@ -117,14 +118,20 @@ export default function Dashboard() {
     );
   }
 
-  // Agar user nahi mila (not logged in / token expired)
+  // Fixed: Direct hard redirect to /login and clearing local storage on session expire
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 text-sm space-y-3">
         <p>Session expired or please log in again.</p>
-        <a href="/login" className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition">
+        <button
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          }}
+          className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition cursor-pointer"
+        >
           Go to Login
-        </a>
+        </button>
       </div>
     );
   }
@@ -167,15 +174,15 @@ export default function Dashboard() {
           </div>
           {user?.gmailConnected && <p className="text-[11px] text-slate-400 truncate mb-3">{user.gmailEmailAddress}</p>}
           {user?.gmailConnected ? (
-            <button onClick={disconnectGmail} className="text-[11px] text-red-400 hover:text-red-300 font-medium transition">
+            <button onClick={disconnectGmail} className="text-[11px] text-red-400 hover:text-red-300 font-medium transition cursor-pointer">
               Disconnect Gmail
             </button>
           ) : (
-            <button onClick={connectGmail} className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold transition">
+            <button onClick={connectGmail} className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold transition cursor-pointer">
               Connect Gmail →
             </button>
           )}
-          <button onClick={logout} className="block mt-3 text-[11px] text-slate-500 hover:text-slate-300 font-medium transition">
+          <button onClick={logout} className="block mt-3 text-[11px] text-slate-500 hover:text-slate-300 font-medium transition cursor-pointer">
             Sign out
           </button>
         </div>
@@ -190,7 +197,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition cursor-pointer"
           >
             + Track New Lead Thread
           </button>
@@ -282,7 +289,7 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={savingSettings}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/20 transition disabled:opacity-60"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/20 transition disabled:opacity-60 cursor-pointer"
               >
                 {savingSettings ? 'Saving…' : 'Save default template'}
               </button>
