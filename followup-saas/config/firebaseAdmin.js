@@ -6,15 +6,15 @@ if (!admin.apps.length) {
     // Remove surrounding quotes if present
     privateKey = privateKey.replace(/^["']|["']$/g, '').trim();
 
-    // Convert all forms of escaped newlines into real newlines
-    privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r\\n/g, '\n');
+    // Convert escaped newlines
+    privateKey = privateKey.replace(/\\n/g, '\n');
 
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: privateKey,
-        }),
+            privateKey: privateKey
+        })
     });
 }
 
