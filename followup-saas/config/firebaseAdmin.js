@@ -1,19 +1,13 @@
 const admin = require('firebase-admin');
 
-// Firebase handles signup/login entirely on the client (email/password and
-// Google sign-in both go through the Firebase client SDK — see
-// client/src/firebase.js). The backend never sees a password or issues its
-// own login tokens; it only verifies the ID token Firebase already issued.
 if (!admin.apps.length) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
 
-    // Handle both literal string "\n" (escaped) and actual multiline keys
-    if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-    }
-
-    // Clean up any surrounding quotes if present
+    // Remove surrounding quotes if present
     privateKey = privateKey.replace(/^["']|["']$/g, '').trim();
+
+    // Convert all forms of escaped newlines into real newlines
+    privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r\\n/g, '\n');
 
     admin.initializeApp({
         credential: admin.credential.cert({
