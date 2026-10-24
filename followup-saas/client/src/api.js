@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { auth } from './firebase.js';
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://fah-flow.vercel.app'
+});
 
 // Every request gets a fresh Firebase ID token. getIdToken() returns the
 // cached token and silently refreshes it in the background when it's close
