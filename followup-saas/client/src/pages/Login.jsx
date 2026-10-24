@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
-import { signInWithEmail, signInWithGoogle } from '../firebase.js';
+import { signInWithEmail, signInWithGoogle, auth } from '../firebase.js';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 function friendlyError(err) {
   const code = err.code || '';
@@ -16,12 +17,14 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setMessage('');
     setLoading(true);
     try {
       await signInWithEmail(email, password);
@@ -35,11 +38,27 @@ export default function Login() {
 
   async function handleGoogle() {
     setError('');
+    setMessage('');
     try {
       await signInWithGoogle();
       navigate('/dashboard');
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') setError('Could not sign in with Google');
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setError('Please enter your email address above first.');
+      return;
+    }
+    setError('');
+    setMessage('');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage('Password reset email sent! Check your inbox.');
+    } catch (err) {
+      setError('Could not send password reset email. Check if email is correct.');
     }
   }
 
@@ -55,6 +74,11 @@ export default function Login() {
               {error}
             </div>
           )}
+          {message && (
+            <div className="text-emerald-400 text-sm mb-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+              {message}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -65,7 +89,16 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300">Password</label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 transition"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
