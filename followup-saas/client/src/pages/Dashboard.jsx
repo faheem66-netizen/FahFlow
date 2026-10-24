@@ -19,14 +19,14 @@ export default function Dashboard() {
 
   async function loadUser() {
     const { data } = await api.get('/auth/me');
-    setUser(data.user);
-    setDelaysText((data.user.followUpDefaults?.delaysDays || []).join(', '));
-    setTemplate(data.user.followUpDefaults?.messageTemplate || '');
+    setUser(data?.user || null);
+    setDelaysText((data?.user?.followUpDefaults?.delaysDays || []).join(', '));
+    setTemplate(data?.user?.followUpDefaults?.messageTemplate || '');
   }
 
   async function loadThreads() {
     const { data } = await api.get('/threads');
-    setThreads(data.threads);
+    setThreads(data?.threads || []);
   }
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function Dashboard() {
     setSavingSettings(true);
     try {
       const { data } = await api.patch('/auth/settings', { delaysDays, messageTemplate: template });
-      setUser(data.user);
+      setUser(data?.user || null);
       setSettingsSaved(true);
     } catch (err) {
       setSettingsError(err.response?.data?.error || 'Could not save settings');
@@ -127,13 +127,13 @@ export default function Dashboard() {
 
         <div className="p-4 m-4 rounded-2xl bg-slate-800/40 border border-slate-800">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`w-2 h-2 rounded-full ${user.gmailConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className={`w-2 h-2 rounded-full ${user?.gmailConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
             <span className="text-xs font-semibold text-slate-300">
-              {user.gmailConnected ? 'Gmail Connected' : 'Gmail Not Connected'}
+              {user?.gmailConnected ? 'Gmail Connected' : 'Gmail Not Connected'}
             </span>
           </div>
-          {user.gmailConnected && <p className="text-[11px] text-slate-400 truncate mb-3">{user.gmailEmailAddress}</p>}
-          {user.gmailConnected ? (
+          {user?.gmailConnected && <p className="text-[11px] text-slate-400 truncate mb-3">{user.gmailEmailAddress}</p>}
+          {user?.gmailConnected ? (
             <button onClick={disconnectGmail} className="text-[11px] text-red-400 hover:text-red-300 font-medium transition">
               Disconnect Gmail
             </button>
@@ -260,7 +260,7 @@ export default function Dashboard() {
 
       {modalOpen && (
         <NewThreadModal
-          defaults={user.followUpDefaults}
+          defaults={user?.followUpDefaults}
           onClose={() => setModalOpen(false)}
           onCreate={createThread}
         />
