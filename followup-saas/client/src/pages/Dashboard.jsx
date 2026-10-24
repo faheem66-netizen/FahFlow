@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true); // <-- Loading state add kiya
 
   // Settings (Templates & Delay) form state
   const [delaysText, setDelaysText] = useState('');
@@ -18,15 +19,25 @@ export default function Dashboard() {
   const [savingSettings, setSavingSettings] = useState(false);
 
   async function loadUser() {
-    const { data } = await api.get('/auth/me');
-    setUser(data?.user || null);
-    setDelaysText((data?.user?.followUpDefaults?.delaysDays || []).join(', '));
-    setTemplate(data?.user?.followUpDefaults?.messageTemplate || '');
+    try {
+      const { data } = await api.get('/auth/me');
+      setUser(data?.user || null);
+      setDelaysText((data?.user?.followUpDefaults?.delaysDays || []).join(', '));
+      setTemplate(data?.user?.followUpDefaults?.messageTemplate || '');
+    } catch (err) {
+      console.error('Failed to load user:', err);
+    } finally {
+      setLoading(false); // <-- Loading khatam
+    }
   }
 
   async function loadThreads() {
-    const { data } = await api.get('/threads');
-    setThreads(data?.threads || []);
+    try {
+      const { data } = await api.get('/threads');
+      setThreads(data?.threads || []);
+    } catch (err) {
+      console.error('Failed to load threads:', err);
+    }
   }
 
   useEffect(() => {
@@ -94,7 +105,29 @@ export default function Dashboard() {
     }
   }
 
-  if (!user) return null;
+  // Agar load ho raha hai toh black screen ki bajaye loading dikhayein
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          Loading Dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  // Agar user nahi mila (not logged in / token expired)
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 text-sm space-y-3">
+        <p>Session expired or please log in again.</p>
+        <a href="/login" className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition">
+          Go to Login
+        </a>
+      </div>
+    );
+  }
 
   const followUpsSent = threads.reduce((sum, t) => sum + (t.currentStep || 0), 0);
   const repliesStopped = threads.filter((t) => t.status === 'REPLY_RECEIVED').length;
