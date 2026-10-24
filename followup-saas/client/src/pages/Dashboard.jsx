@@ -118,13 +118,18 @@ export default function Dashboard() {
     );
   }
 
-  // Fixed: Direct hard redirect to /login and clearing local storage on session expire
+  // Session Expired state (Now properly clearing Firebase Auth session)
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 text-sm space-y-3">
         <p>Session expired or please log in again.</p>
         <button
-          onClick={() => {
+          onClick={async () => {
+            try {
+              await signOutUser();
+            } catch (err) {
+              console.error('Signout error:', err);
+            }
             localStorage.clear();
             window.location.href = '/login';
           }}
