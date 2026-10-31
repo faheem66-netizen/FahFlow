@@ -1,4 +1,4 @@
-require('dotenv').config();
+Require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -38,6 +38,25 @@ app.use(express.json());
 app.get('/health', (req, res) => res.json({ ok: true }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/', (req, res) => res.send('FahFlow Backend Running Successfully!'));
+
+// External Cron Trigger Endpoint (Added for Serverless Automation)
+app.get('/api/cron', async (req, res) => {
+  try {
+    console.log('[cron] Trigger received via external request');
+
+    // Call the monitoring service function to process due follow-ups and check replies
+    if (typeof monitoringService.runCheck === 'function') {
+      await monitoringService.runCheck();
+    } else if (typeof monitoringService === 'function') {
+      await monitoringService();
+    }
+
+    return res.status(200).json({ success: true, message: 'Cron processed successfully' });
+  } catch (err) {
+    console.error('[cron] Error executing cron:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Direct Routes (Matching Frontend Calls)
 app.use('/auth', authRoutes);
