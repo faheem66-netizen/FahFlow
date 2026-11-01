@@ -39,14 +39,13 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/', (req, res) => res.send('FahFlow Backend Running Successfully!'));
 
-// External Cron Trigger Endpoint (Added for Serverless Automation)
+// External Cron Trigger Endpoint (Corrected mapping to runFollowUpCheck)
 app.get('/api/cron', async (req, res) => {
   try {
     console.log('[cron] Trigger received via external request');
 
-    // Call the monitoring service function to process due follow-ups and check replies
-    if (typeof monitoringService.runCheck === 'function') {
-      await monitoringService.runCheck();
+    if (typeof monitoringService.runFollowUpCheck === 'function') {
+      await monitoringService.runFollowUpCheck();
     } else if (typeof monitoringService === 'function') {
       await monitoringService();
     }
