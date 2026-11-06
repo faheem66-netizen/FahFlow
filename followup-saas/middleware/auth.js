@@ -1,12 +1,6 @@
 const admin = require('../config/firebaseAdmin');
 const User = require('../models/User');
 
-// Every protected route runs this first. The client sends the Firebase ID
-// token it got from signInWithEmailAndPassword / signInWithPopup(Google) /
-// onIdTokenChanged as a Bearer token. We verify it with Firebase Admin, then
-// look up (or lazily create) the matching Mongo User -- that Mongo document,
-// keyed by firebaseUid, is the tenant. Every downstream query filters by
-// req.user._id, so nothing here should ever trust an id from the request body.
 async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
@@ -18,11 +12,23 @@ async function requireAuth(req, res, next) {
 
     const decoded = await admin.auth().verifyIdToken(idToken);
 
+    // 1. Pehle firebaseUid se dhundein
     let user = await User.findOne({ firebaseUid: decoded.uid });
 
+    // 2. Agar firebaseUid se nahi mila, lekin email match ho gaya (matlab user delete karke dobara bana hai)
+    if (!user && decoded.email) {
+      user = await User.findOne({ email: decoded.email });
+      if (user) {
+        // Purane user ka firebaseUid update kar dein naye wale se
+        user.firebaseUid = decoded.uid;
+        if (decoded.name) user.name = decoded.name;
+        if (decoded.picture) user.avatarUrl = decoded.picture;
+        await user.save();
+      }
+    }
+
+    // 3. Agar bilkul naya user hai toh create kar dein
     if (!user) {
-      // First request after a brand-new Firebase signup -- provision the
-      // tenant record now rather than requiring a separate "register" call.
       user = await User.create({
         firebaseUid: decoded.uid,
         email: decoded.email,
@@ -34,6 +40,7 @@ async function requireAuth(req, res, next) {
     req.user = user;
     next();
   } catch (err) {
+    console.error('Auth middleware error:', err.message);
     return res.status(401).json({ error: 'Invalid or expired session' });
   }
 }
