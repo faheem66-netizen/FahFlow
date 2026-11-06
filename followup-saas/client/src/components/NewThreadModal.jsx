@@ -43,7 +43,15 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
     const found = gmailThreads.find((t) => t.threadId === selectedId);
     if (found) {
       if (found.subject) setSubject(found.subject);
-      if (found.to) setRecipientEmail(found.to);
+
+      if (found.to) {
+        // Extract pure email address: removes extra names, quotes, angle brackets, and trailing commas
+        const matchedEmail = found.to.match(/<([^>]+)>/);
+        const rawEmail = matchedEmail ? matchedEmail[1] : found.to;
+        const cleanEmail = rawEmail.replace(/["',]/g, '').trim();
+
+        setRecipientEmail(cleanEmail);
+      }
     }
   }
 
