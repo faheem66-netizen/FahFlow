@@ -150,14 +150,49 @@ async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailA
   const client = await getClientForUser(userId);
   const gmail = google.gmail({ version: 'v1', auth: client });
 
-  const rawMessage = [
+  // Fetch the original thread to get the last message's Message-ID for proper threading headers
+  let messageIdHeader = '';
+  let referencesHeader = '';
+  try {
+    const threadData = await gmail.users.threads.get({
+      userId: 'me',
+      id: threadId,
+      format: 'metadata',
+      metadataHeaders: ['Message-ID', 'References', 'Subject'],
+    });
+
+    const messages = threadData.data.messages || [];
+    if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      const headers = Object.fromEntries(
+        (lastMsg.payload.headers || []).map((h) => [h.name.toLowerCase(), h.value])
+      );
+
+      const msgId = headers['message-id'];
+      const refs = headers['references'] || msgId;
+
+      if (msgId) {
+        messageIdHeader = `In-Reply-To: ${msgId}`;
+        referencesHeader = `References: ${refs}`;
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching thread for headers:', err.message);
+  }
+
+  const rawLines = [
     `From: ${ownEmailAddress}`,
     `To: ${to}`,
     `Subject: ${subject.startsWith('Re:') ? subject : `Re: ${subject}`}`,
     'Content-Type: text/plain; charset=utf-8',
-    '',
-    bodyText,
-  ].join('\n');
+  ];
+
+  if (messageIdHeader) rawLines.push(messageIdHeader);
+  if (referencesHeader) rawLines.push(referencesHeader);
+
+  rawLines.push('', bodyText);
+
+  const rawMessage = rawLines.join('\n');
 
   const encoded = Buffer.from(rawMessage)
     .toString('base64')
