@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function NewThreadModal({ defaults, onClose, onCreate }) {
+export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
+  const [gmailThreads, setGmailThreads] = useState([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [threadFetchError, setThreadFetchError] = useState('');
+
   const [gmailThreadId, setGmailThreadId] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -9,9 +13,49 @@ export default function NewThreadModal({ defaults, onClose, onCreate }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Fetch user's Gmail threads when modal opens
+  useEffect(() => {
+    async function fetchThreads() {
+      setLoadingThreads(true);
+      setThreadFetchError('');
+      try {
+        const { data } = await api.get('/gmail/threads');
+        if (data.success) {
+          setGmailThreads(data.threads || []);
+        }
+      } catch (err) {
+        console.error('Failed to load Gmail threads:', err);
+        setThreadFetchError('Could not load Gmail threads. Make sure Gmail is connected.');
+      } finally {
+        setLoadingThreads(false);
+      }
+    }
+
+    if (api) {
+      fetchThreads();
+    }
+  }, [api]);
+
+  // When a thread is selected from the dropdown, auto-fill subject & recipient if available
+  function handleThreadSelect(e) {
+    const selectedId = e.target.value;
+    setGmailThreadId(selectedId);
+
+    const found = gmailThreads.find((t) => t.threadId === selectedId);
+    if (found) {
+      if (found.subject) setSubject(found.subject);
+      if (found.to) setRecipientEmail(found.to);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (!gmailThreadId.trim()) {
+      setError('Please select a Gmail thread to track');
+      return;
+    }
 
     const delaysDays = delaysText
       .split(',')
@@ -62,8 +106,28 @@ export default function NewThreadModal({ defaults, onClose, onCreate }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className={labelClass}>Gmail thread ID</label>
-            <input className={inputClass} value={gmailThreadId} onChange={(e) => setGmailThreadId(e.target.value)} required />
+            <label className={labelClass}>Select Gmail Thread</label>
+            <select
+              className={inputClass}
+              value={gmailThreadId}
+              onChange={handleThreadSelect}
+              required
+            >
+              <option value="">-- Select a thread from your Gmail --</option>
+              {loadingThreads ? (
+                <option disabled>Loading threads from Gmail...</option>
+              ) : (
+                gmailThreads.map((t) => (
+                  <option key={t.threadId} value={t.threadId}>
+                    {t.subject} {t.to ? `(To: ${t.to})` : ''}
+                  </option>
+                ))
+              )}
+            </select>
+            {threadFetchError && <p className="text-[11px] text-red-400 mt-1">{threadFetchError}</p>}
+            <p className="text-[11px] text-slate-500 mt-1">
+              Select the conversation you want to automate follow-ups for.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -101,7 +165,7 @@ export default function NewThreadModal({ defaults, onClose, onCreate }) {
             <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold text-sm text-slate-200 transition">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-60">
+            <button type="submit" disabled={saving || loadingThreads} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-60">
               {saving ? 'Adding…' : 'Start tracking'}
             </button>
           </div>

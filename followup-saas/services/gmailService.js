@@ -63,11 +63,50 @@ async function exchangeCodeForTokens(code) {
   return { tokens, emailAddress: profile.email };
 }
 
+// Fetch recent sent threads for frontend dropdown selection (Fixes Invalid ID issue)
+async function listUserThreads(user) {
+  const client = await getClientForUser(user._id);
+  const gmail = google.gmail({ version: 'v1', auth: client });
+
+  const response = await gmail.users.threads.list({
+    userId: 'me',
+    maxResults: 15,
+    q: 'in:sent',
+  });
+
+  const threads = response.data.threads || [];
+
+  const threadDetails = await Promise.all(
+    threads.map(async (t) => {
+      try {
+        const threadData = await gmail.users.threads.get({
+          userId: 'me',
+          id: t.id,
+          format: 'metadata',
+          metadataHeaders: ['Subject', 'To'],
+        });
+        const headers = Object.fromEntries(
+          (threadData.data.messages?.[0]?.payload?.headers || []).map((h) => [
+            h.name.toLowerCase(),
+            h.value,
+          ])
+        );
+        return {
+          threadId: t.id,
+          subject: headers.subject || 'No Subject',
+          to: headers.to || '',
+        };
+      } catch (e) {
+        return { threadId: t.id, subject: 'Could not load subject', to: '' };
+      }
+    })
+  );
+
+  return threadDetails;
+}
+
 // Fresh, targeted check: does this Gmail thread contain a message from
 // someone OTHER than the connected account, newer than `sinceDate`?
-// This is deliberately re-queried immediately before every send — see
-// monitoringService.processThread — so a reply that lands seconds before
-// a scheduled follow-up still blocks it.
 async function isGenuineClientReply(userId, gmailThreadId, ownEmailAddress, sinceDate) {
   const client = await getClientForUser(userId);
   const gmail = google.gmail({ version: 'v1', auth: client });
@@ -92,8 +131,6 @@ async function isGenuineClientReply(userId, gmailThreadId, ownEmailAddress, sinc
     const isFromOwner = from.includes(ownEmailAddress.toLowerCase());
     const isNewEnough = !sinceDate || internalDate > new Date(sinceDate).getTime();
 
-    // Filter out auto-replies / bounces / noreply senders — a genuine
-    // client reply is a real human message, not an autoresponder.
     const looksAutomated =
       (headers['auto-submitted'] && headers['auto-submitted'] !== 'no') ||
       (headers.precedence || '').toLowerCase() === 'bulk' ||
@@ -139,6 +176,7 @@ async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailA
 module.exports = {
   getConsentUrl,
   exchangeCodeForTokens,
+  listUserThreads,
   isGenuineClientReply,
   sendFollowUp,
 };

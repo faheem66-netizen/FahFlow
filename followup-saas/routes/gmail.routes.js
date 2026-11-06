@@ -41,6 +41,22 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// Step 3: Fetch user's Gmail threads for easy frontend selection (Fixes Invalid id value error)
+router.get('/threads', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.gmail || !user.gmail.connected) {
+      return res.status(400).json({ error: 'Gmail not connected for this user' });
+    }
+
+    const threads = await gmailService.listUserThreads(user);
+    res.json({ success: true, threads });
+  } catch (err) {
+    console.error('[gmail.threads]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/disconnect', requireAuth, async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, {
     $set: {

@@ -306,6 +306,7 @@ export default function Dashboard() {
       {modalOpen && (
         <NewThreadModal
           defaults={user?.followUpDefaults}
+          api={api}
           onClose={() => setModalOpen(false)}
           onCreate={createThread}
         />
