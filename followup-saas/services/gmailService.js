@@ -181,7 +181,7 @@ async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailA
   }
 
   const rawLines = [
-    `From: ${ownEmailAddress}`,
+    `From: Designvisique <${ownEmailAddress}>`,
     `To: ${to}`,
     `Subject: ${subject.startsWith('Re:') ? subject : `Re: ${subject}`}`,
     'Content-Type: text/plain; charset=utf-8',
