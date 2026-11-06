@@ -1,7 +1,6 @@
 const { google } = require('googleapis');
 const User = require('../models/User');
 
-// Scopes requested only during the explicit "Connect Gmail" flow, never at login.
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
@@ -19,15 +18,13 @@ function buildOAuthClient() {
 function getConsentUrl(state) {
   const client = buildOAuthClient();
   return client.generateAuthUrl({
-    access_type: 'offline', // required to get a refresh_token
-    prompt: 'consent', // force refresh_token on every connect, not just the first time
+    access_type: 'offline',
+    prompt: 'consent',
     scope: GMAIL_SCOPES,
-    state, // carries the userId so the callback knows which tenant to attach tokens to
+    state,
   });
 }
 
-// Returns an OAuth2 client pre-loaded with this user's tokens, auto-refreshing
-// and persisting a new access token back to the User document when it expires.
 async function getClientForUser(userId) {
   const user = await User.findById(userId).select('+gmail.accessToken +gmail.refreshToken');
   if (!user?.gmail?.connected) {
@@ -63,7 +60,6 @@ async function exchangeCodeForTokens(code) {
   return { tokens, emailAddress: profile.email };
 }
 
-// Fetch recent sent threads for frontend dropdown selection (Fixes Invalid ID issue)
 async function listUserThreads(user) {
   const client = await getClientForUser(user._id);
   const gmail = google.gmail({ version: 'v1', auth: client });
@@ -105,8 +101,6 @@ async function listUserThreads(user) {
   return threadDetails;
 }
 
-// Fresh, targeted check: does this Gmail thread contain a message from
-// someone OTHER than the connected account, newer than `sinceDate`?
 async function isGenuineClientReply(userId, gmailThreadId, ownEmailAddress, sinceDate) {
   const client = await getClientForUser(userId);
   const gmail = google.gmail({ version: 'v1', auth: client });
@@ -146,11 +140,10 @@ async function isGenuineClientReply(userId, gmailThreadId, ownEmailAddress, sinc
   return { found: false };
 }
 
-async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailAddress }) {
+async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailAddress, senderName }) {
   const client = await getClientForUser(userId);
   const gmail = google.gmail({ version: 'v1', auth: client });
 
-  // Fetch the original thread to get the last message's Message-ID for proper threading headers
   let messageIdHeader = '';
   let referencesHeader = '';
   try {
@@ -180,8 +173,10 @@ async function sendFollowUp(userId, { threadId, to, subject, bodyText, ownEmailA
     console.error('Error fetching thread for headers:', err.message);
   }
 
+  const displayName = senderName && senderName.trim() ? senderName.trim() : 'Designvisique';
+
   const rawLines = [
-    `From: Designvisique <${ownEmailAddress}>`,
+    `From: ${displayName} <${ownEmailAddress}>`,
     `To: ${to}`,
     `Subject: ${subject.startsWith('Re:') ? subject : `Re: ${subject}`}`,
     'Content-Type: text/plain; charset=utf-8',

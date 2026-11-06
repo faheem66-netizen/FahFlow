@@ -8,12 +8,12 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
   const [gmailThreadId, setGmailThreadId] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [subject, setSubject] = useState('');
+  const [senderName, setSenderName] = useState(defaults?.senderName || 'Designvisique');
   const [delaysText, setDelaysText] = useState((defaults?.delaysDays || [3, 5, 7, 15, 20]).join(', '));
   const [message, setMessage] = useState(defaults?.messageTemplate || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Fetch user's Gmail threads when modal opens
   useEffect(() => {
     async function fetchThreads() {
       setLoadingThreads(true);
@@ -36,7 +36,6 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
     }
   }, [api]);
 
-  // When a thread is selected from the dropdown, auto-fill subject & recipient if available
   function handleThreadSelect(e) {
     const selectedId = e.target.value;
     setGmailThreadId(selectedId);
@@ -76,6 +75,7 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
       gmailThreadId: gmailThreadId.trim(),
       recipientEmail: recipientEmail.trim(),
       subject: subject.trim(),
+      senderName: senderName.trim(),
       delaysDays,
       messageTemplate: message,
     });
@@ -125,9 +125,6 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
               )}
             </select>
             {threadFetchError && <p className="text-[11px] text-red-400 mt-1">{threadFetchError}</p>}
-            <p className="text-[11px] text-slate-500 mt-1">
-              Select the conversation you want to automate follow-ups for.
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -136,17 +133,19 @@ export default function NewThreadModal({ defaults, api, onClose, onCreate }) {
               <input type="email" className={inputClass} value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} required />
             </div>
             <div>
-              <label className={labelClass}>Subject (optional)</label>
-              <input className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Proposal for..." />
+              <label className={labelClass}>Sender Display Name</label>
+              <input className={inputClass} value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Designvisique" required />
             </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Subject (optional)</label>
+            <input className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Proposal for..." />
           </div>
 
           <div>
             <label className={labelClass}>Follow up after (days), one after another</label>
             <input className={inputClass} value={delaysText} onChange={(e) => setDelaysText(e.target.value)} placeholder="3, 5, 7, 15, 20" />
-            <p className="text-[11px] text-slate-500 mt-1.5">
-              e.g. "3, 5, 7, 15, 20" sends the 1st follow-up after 3 days, the 2nd 5 days after that, and so on.
-            </p>
           </div>
 
           <div>
